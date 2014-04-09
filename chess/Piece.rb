@@ -16,6 +16,7 @@ class Piece
   end
 
 
+
   def moves(pos)
     raise NotImplementedError
   end
@@ -25,8 +26,11 @@ class Piece
   end
 
 
-  # def invalid_position?
-  # end
+  def piece_dup(b)
+    new_piece = self.dup
+    new_piece.board = b
+    new_piece
+  end
 
 end
 
@@ -34,6 +38,7 @@ class SlidingPiece < Piece
 
   def moves(deltas)
     possible_moves = []
+
 
     deltas.each do |delta|
       current_pos = self.position.dup
@@ -43,20 +48,21 @@ class SlidingPiece < Piece
         current_pos[0] += delta[0]
         current_pos[1] +=  delta[1]
 
-        puts "Delta: #{delta} Current Position: #{current_pos}"
+        # puts "Delta: #{delta} Current Position: #{current_pos}"
+
         if is_valid_move?(current_pos)
-           possible_moves << current_pos.dup
-           #puts "BOARD -- #{self.board[current_pos].nil?}"
-           next if self.board[current_pos].nil?
-           #puts "COLOR -- #{self.board[current_pos].color != self.color}"
-           break if self.board[current_pos].color != self.color
-         else
-           break
-         end
+          possible_moves << current_pos.dup
+          #puts "BOARD -- #{self.board[current_pos].nil?}"
+          next if self.board[current_pos].nil?
+          #puts "COLOR -- #{self.board[current_pos].color != self.color}"
+          break if self.board[current_pos].color != self.color
+        else
+          break
+        end
 
       end
     end
-    puts "Possible moves: #{possible_moves}"
+    # puts "Possible moves: #{possible_moves}"
     possible_moves
   end
 
@@ -73,7 +79,6 @@ class SteppingPiece < Piece
       # debugger
       current_pos[0] += delta[0]
       current_pos[1] +=  delta[1]
-
       possible_moves << current_pos.dup if is_valid_move?(current_pos)
     end
 
@@ -195,17 +200,47 @@ end
 class Pawn < SteppingPiece
 
 
-  DELTAS = [[-1, 0], [0,1], [1,0], [0,-1]]
-  attr_reader :symbol
+  attr_reader :symbol, :direction
 
   def initialize(position, board, color)
     super(position, board, color)
     self.symbol = Board::PAWN_WHITE if self.color == :white
     self.symbol = Board::PAWN_BLACK if self.color != :white
+    @direction = 1  if self.position[0] == 1
+    @direction = -1 if self.position[0] == 6
   end
 
   def moves
-    super(DELTAS)
+    super(deltas)
   end
 
+  def deltas
+    deltas = [[direction, 0]]
+    deltas << [direction * 2, 0] if first_move?
+
+    current_pos = self.position.dup
+
+    current_pos[0] += self.direction
+    current_pos[1] += 1
+
+    unless self.board[current_pos].nil? || self.board[current_pos].color == self.color
+      deltas << current_pos.dup
+    end
+
+    current_pos = self.position.dup
+
+    current_pos[0] += self.direction
+    current_pos[1] -= 1
+
+    unless self.board[current_pos].nil? || self.board[current_pos].color == self.color
+      deltas << current_pos.dup
+    end
+
+    deltas
+  end
+
+
+  def first_move?
+    self.position[0] == 1 || self.position[0] == 6
+  end
 end
