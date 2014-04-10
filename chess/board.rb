@@ -46,11 +46,11 @@ class Board
 
 
   def get_color_pieces(color)
-     pieces = self.squares.flatten.compact.select{ |piece| piece.color == color }
+     self.squares.flatten.compact.select{ |piece| piece.color == color }
    end
 
    def get_all_pieces
-     pieces = self.squares.flatten.compact
+     self.squares.flatten.compact
    end
 
   def find_piece(color, target_piece)
@@ -74,20 +74,21 @@ class Board
   def move_into_check?(from, to)
     #puts "MOVE INTO CHECK? FROM: #{from}   TO: #{to}"
     new_board = self.dup
-    new_board.move_piece(from, to)
     color = self[from].color
+    new_board.move_piece(from, to)
     new_board.in_check?(color)
   end
 
   def in_check?(color)
     king_pos = find_piece(color, King)
-    in_check = false
 
-    get_color_pieces(color).each do |piece|
+    other_color = :black if color == :white
+    other_color = :white if color == :black
+    get_color_pieces(other_color).each do |piece|
       possible_moves = piece.moves
-      in_check = possible_moves.include?(king_pos)
+      return true if possible_moves.include?(king_pos)
     end
-    in_check
+    false
   end
 
   def move_piece(from, to)
@@ -149,23 +150,20 @@ class Board
   end
 
   def check_mate?(color)
+    return false unless in_check?(color)
 
-    check_mate = true
     get_color_pieces(color).each do |piece|
       possible_moves = []
       from = piece.position
       piece.moves.each do |to|
         possible_moves << to unless move_into_check?(from, to)
       end
-      # possible_moves = piece.moves.reject do |to|
-      #       puts "CHECKMATE CHECK FROM #{from}   #{to}"
-      #       move_into_check?(from, to)
-      #     end
-      # puts "Color: #{color} - #{possible_moves}"
-      check_mate = false unless possible_moves.empty?
+      puts "Possible moves: #{possible_moves}"
+      puts "Piece: #{piece.class} - #{piece.position}"
+      gets
+      return false unless possible_moves.empty?
     end
-
     # puts "CHECKMATE? #{check_mate}  IN_CHECK: #{in_check?(color)}"
-    check_mate # && in_check?(color)
+    true
   end
 end

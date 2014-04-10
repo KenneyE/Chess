@@ -3,8 +3,8 @@ class Piece
 
   def is_valid_move?(pos)
     return false unless pos.all? {|ind| ind.between?(0, 7)}
-    return true if self.board[pos].nil?
-    false
+    # return true if self.board[pos].nil?
+    true
   end
 
   def initialize(position, board, color)
@@ -27,8 +27,9 @@ class Piece
 
 
   def piece_dup(b)
-    new_piece = self.dup
-    new_piece.board = b
+    new_piece = self.class.new(self.position.dup, b, self.color)
+    new_piece.symbol = self.symbol
+    new_piece.cursor = self.cursor
     new_piece
   end
 
@@ -51,11 +52,10 @@ class SlidingPiece < Piece
         # puts "Delta: #{delta} Current Position: #{current_pos}"
 
         if is_valid_move?(current_pos)
-          possible_moves << current_pos.dup
-          #puts "BOARD -- #{self.board[current_pos].nil?}"
-          next if self.board[current_pos].nil?
-          #puts "COLOR -- #{self.board[current_pos].color != self.color}"
-          break if self.board[current_pos].color != self.color
+          if self.board[current_pos].nil? || self.board[current_pos].color != self.color
+            possible_moves << current_pos.dup
+          end
+          break unless self.board[current_pos].nil?
         else
           break
         end
@@ -79,7 +79,12 @@ class SteppingPiece < Piece
       # debugger
       current_pos[0] += delta[0]
       current_pos[1] +=  delta[1]
-      possible_moves << current_pos.dup if is_valid_move?(current_pos)
+
+      if is_valid_move?(current_pos)
+        if self.board[current_pos].nil? || self.board[current_pos].color != self.color
+          possible_moves << current_pos.dup
+        end
+      end
     end
 
     possible_moves
@@ -199,8 +204,8 @@ end
 
 class Pawn < SteppingPiece
 
-
-  attr_reader :symbol, :direction
+  attr_reader :symbol
+  attr_accessor :direction
 
   def initialize(position, board, color)
     super(position, board, color)
@@ -211,7 +216,10 @@ class Pawn < SteppingPiece
   end
 
   def moves
-    super(deltas)
+    pos_moves = super(deltas)
+    pos_moves.reject do |move|
+      move[1] == self.position[1] && !self.board[move].nil?
+    end
   end
 
   def deltas
@@ -221,24 +229,22 @@ class Pawn < SteppingPiece
     current_pos = self.position.dup
 
     current_pos[0] += self.direction
-    current_pos[1] += 1
 
-    unless self.board[current_pos].nil? || self.board[current_pos].color == self.color
-      deltas << current_pos.dup
+    [-1, 1].each do |dir|
+      current_pos[1] = self.position[1] + dir
+      unless self.board[current_pos].nil? || self.board[current_pos].color == self.color
+        deltas << [self.direction, dir]
+      end
     end
-
-    current_pos = self.position.dup
-
-    current_pos[0] += self.direction
-    current_pos[1] -= 1
-
-    unless self.board[current_pos].nil? || self.board[current_pos].color == self.color
-      deltas << current_pos.dup
-    end
-
+    #puts "DELTAS: #{deltas}"
     deltas
   end
 
+  def piece_dup(b)
+    new_piece = super(b)
+    new_piece.direction = self.direction
+    new_piece
+  end
 
   def first_move?
     self.position[0] == 1 || self.position[0] == 6
