@@ -1,6 +1,12 @@
 class Piece
   attr_accessor :position, :board, :color, :symbol, :cursor
 
+  def is_valid_move?(pos)
+    return false unless pos.all? {|ind| ind.between?(0, 7)}
+    # return true if self.board[pos].nil?
+    true
+  end
+
   def initialize(position, board, color)
     @position = position
     @board = board
@@ -9,11 +15,7 @@ class Piece
     @cursor = false
   end
 
-  def is_valid_move?(pos)
-    return false unless pos.all? { |ind| ind.between?(0,7) }
-    return true if self.board[pos].nil?
-    false
-  end
+
 
   def moves(pos)
     raise NotImplementedError
@@ -23,42 +25,54 @@ class Piece
     self.cursor
   end
 
+
+  def piece_dup(b)
+    new_piece = self.class.new(self.position.dup, b, self.color)
+    new_piece.symbol = self.symbol
+    new_piece.cursor = self.cursor
+    new_piece
+  end
+
 end
 
 class SlidingPiece < Piece
 
   def moves(deltas)
     possible_moves = []
-    # debugger
+
+
     deltas.each do |delta|
       current_pos = self.position.dup
 
       loop do
+
         current_pos[0] += delta[0]
         current_pos[1] +=  delta[1]
 
-        # puts "Starting Pos: #{self.position}, Delta: #{delta}, Moved Pos: #{current_pos}"
+        # puts "Delta: #{delta} Current Position: #{current_pos}"
+
         if is_valid_move?(current_pos)
-           possible_moves << current_pos.dup
-           # puts "BOARD -- #{self.board[current_pos].nil?}"
-           next if self.board[current_pos].nil?
-           #puts "COLOR -- #{self.board[current_pos].color != self.color}"
-           break if self.board[current_pos].color != self.color
-         else
-           break
-         end
+          if self.board[current_pos].nil? || self.board[current_pos].color != self.color
+            possible_moves << current_pos.dup
+          end
+          break unless self.board[current_pos].nil?
+        else
+          break
+        end
 
       end
     end
     # puts "Possible moves: #{possible_moves}"
     possible_moves
   end
+
 end
 
 class SteppingPiece < Piece
 
   def moves(deltas)
     possible_moves = []
+
     deltas.each do |delta|
       current_pos = self.position.dup
       # break if current_pos.nil?
@@ -66,7 +80,11 @@ class SteppingPiece < Piece
       current_pos[0] += delta[0]
       current_pos[1] +=  delta[1]
 
-      possible_moves << current_pos.dup if is_valid_move?(current_pos)
+      if is_valid_move?(current_pos)
+        if self.board[current_pos].nil? || self.board[current_pos].color != self.color
+          possible_moves << current_pos.dup
+        end
+      end
     end
 
     possible_moves
@@ -77,8 +95,8 @@ end
 
 class King < SteppingPiece
 
-  DELTAS = [[1, 0], [-1, 0], [0, 1], [0, -1],
-            [1, 1], [1, -1], [-1, -1], [-1, 1]]
+  DELTAS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, -1], [-1, 1]]
+
 
   def moves
     super(DELTAS)
@@ -90,6 +108,21 @@ class King < SteppingPiece
     self.symbol = Board::KING_WHITE if self.color == :white
     self.symbol = Board::KING_BLACK if self.color != :white
   end
+
+  # def moves(deltas)
+  #   possible_moves = []
+  #
+  #   deltas.each do |delta|
+  #     current_pos = self.position
+  #     current_pos[0] += delta[0]
+  #     current_pos[1] +=  delta[1]
+  #     possible_moves << current_pos if is_valid_move?(current_pos)
+  #   end
+  #
+  #   possible_moves
+  # end
+
+
 end
 
 
@@ -113,8 +146,9 @@ end
 
 
 
-
 class Rook < SlidingPiece
+
+
   DELTAS = [[1, 0], [-1, 0], [0, 1], [0, -1]]
   attr_reader :symbol
 
@@ -127,10 +161,12 @@ class Rook < SlidingPiece
   def moves
     super(DELTAS)
   end
+
 end
 
 
 class Bishop < SlidingPiece
+
 
   DELTAS = [[1, 1], [-1, 1], [1, -1], [-1, -1]]
   attr_reader :symbol
@@ -144,13 +180,14 @@ class Bishop < SlidingPiece
   def moves
     super(DELTAS)
   end
+
 end
 
 
 class Queen < SlidingPiece
 
-  DELTAS = [ [1, 1], [1, 0], [1, -1], [0, -1],
-            [-1, -1], [-1, 0], [-1, 1], [0, 1]]
+  DELTAS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, -1], [-1, 1]]
+
 
   def moves
     super(DELTAS)
@@ -165,52 +202,51 @@ class Queen < SlidingPiece
 end
 
 
-class Pawn < Stepping
+class Pawn < SteppingPiece
 
-
-  DELTAS = [[1, 0]
   attr_reader :symbol
+  attr_accessor :direction
 
   def initialize(position, board, color)
     super(position, board, color)
     self.symbol = Board::PAWN_WHITE if self.color == :white
     self.symbol = Board::PAWN_BLACK if self.color != :white
+    @direction = 1  if self.position[0] == 1
+    @direction = -1 if self.position[0] == 6
   end
 
   def moves
-    super(DELTAS)
+    pos_moves = super(deltas)
+    pos_moves.reject do |move|
+      move[1] == self.position[1] && !self.board[move].nil?
+    end
   end
 
+  def deltas
+    deltas = [[direction, 0]]
+    deltas << [direction * 2, 0] if first_move?
+
+    current_pos = self.position.dup
+
+    current_pos[0] += self.direction
+
+    [-1, 1].each do |dir|
+      current_pos[1] = self.position[1] + dir
+      unless self.board[current_pos].nil? || self.board[current_pos].color == self.color
+        deltas << [self.direction, dir]
+      end
+    end
+    #puts "DELTAS: #{deltas}"
+    deltas
+  end
+
+  def piece_dup(b)
+    new_piece = super(b)
+    new_piece.direction = self.direction
+    new_piece
+  end
+
+  def first_move?
+    self.position[0] == 1 || self.position[0] == 6
+  end
 end
-
-#class Pawn < Piece
-
-#
-#   attr_accessor :delta
-#
-#   def is_first_move?
-#     return true if self.position[0] == 1 && self.color == self.board.player2_color
-#     return true if self.position[0] == 6 && self.color == self.board.player1_color
-#     false
-#   end
-#
-#   def initialize(position, board, color)
-#     super(position, board, color)
-#     self.symbol = Board::PAWN_WHITE if self.color == :white
-#     self.symbol = Board::PAWN_BLACK if self.color != :white
-#   end
-#
-#   def moves(deltas)
-#     possible_moves = []
-#
-#     deltas.each do |delta|
-#       current_pos = self.position
-#       current_pos[0] += delta[0]
-#       current_pos[1] +=  delta[1]
-#       possible_moves << current_pos if is_valid_move?(current_pos)
-#     end
-#
-#     possible_moves
-#   end
-#
-#end

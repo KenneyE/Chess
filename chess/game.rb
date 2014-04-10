@@ -1,7 +1,7 @@
 require 'debugger'
-require './piece_codes'
-require './Board'
-require './Piece'
+load './piece_codes.rb'
+load './piece.rb'
+load './board.rb'
 
 class Game
   attr_accessor :player1_turn, :board
@@ -13,6 +13,7 @@ class Game
     @player2_color = options[:player2_color]
     @player1_turn = true
   end
+
 
   def play
 
@@ -28,7 +29,6 @@ class Game
 
       self.board.display_board
 
-
       from, to = get_move(color)
 
       self.board.move_piece(from, to)
@@ -39,31 +39,27 @@ class Game
 
   def get_move(color)
     valid_from = false
-    #puts "Color #{color}"
     begin
       #self.board.display_colormap
       from = parse(prompt("Input starting square: "))
-      #puts "From Color #{self.board[from].color}"
-      #p self.board[from]
-      #puts "From: #{from}"
+
       next if self.board[from].nil? || self.board[from].color != color
       unless self.board[from].moves.empty?
-        # puts("Point 3: Moves isn't Empty!")
         valid_from = true
       end
-
-      # puts "BOARD MOVES: #{self.board[from].moves}"
+    rescue
+      puts "Invalid input"
+      retry
     end until valid_from
 
-    #puts "From: #{self.board[from].symbol}"
+    puts "From: #{self.board[from].symbol}"
 
     valid_moves = self.board[from].moves
 
     begin
       to = parse(prompt("Input end square: "))
-    end until valid_moves.include?(to)
+    end until valid_moves.include?(to) && !self.board.move_into_check?(from, to)
 
-    #puts "To: #{self.board[to].class}"
     return from, to
   end
 
@@ -77,10 +73,16 @@ class Game
     alpha = { "a" => 0, "b" => 1, "c" => 2, "d" => 3, "e" => 4,
               "f" => 5, "g" => 6, "h" => 7 }
     arr = s.split("")
-    [ alpha[arr[0]], Integer(arr[1])-1].reverse
+    raise "Invalid Input" if alpha[arr[0]].nil? || !alpha[arr[0]].between?(0,7)
+    raise "Invalid Input" unless (8 - Integer(arr[1])).between?(0,7)
+    [ 8 - Integer(arr[1]),  alpha[arr[0]]]
   end
 end
 
+def play_game
+  g = Game.new
+  g.play
+end
 
-g = Game.new
-g.play
+play_game
+
