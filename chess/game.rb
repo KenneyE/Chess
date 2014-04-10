@@ -28,15 +28,6 @@ class Game
       end
 
       self.board.display_board
-      puts "Checkmate WHITE?" if board.check_mate?(self.player1_color)
-      puts "Checkmate BLACK?" if board.check_mate?(self.player2_color)
-      puts "In check WHITE?" if board.in_check?(self.player1_color)
-      puts "In check BLACK?" if board.in_check?(self.player2_color)
-
-      puts "NOT checkmate WHITE?" unless board.check_mate?(self.player1_color)
-      puts "NOT checkmate BLACK?" unless board.check_mate?(self.player2_color)
-      puts "Not in check WHITE?" unless board.in_check?(self.player1_color)
-      puts "Not in check BLACK?" unless board.in_check?(self.player2_color)
 
       from, to = get_move(color)
 
@@ -48,20 +39,17 @@ class Game
 
   def get_move(color)
     valid_from = false
-    #puts "Color #{color}"
     begin
       #self.board.display_colormap
       from = parse(prompt("Input starting square: "))
-      #puts "From Color #{self.board[from].color}"
-      #p self.board[from]
-      #puts "From: #{from}"
+
       next if self.board[from].nil? || self.board[from].color != color
       unless self.board[from].moves.empty?
-        puts("Point 3")
         valid_from = true
       end
-
-      #puts "BOARD MOVES: #{self.board[from].moves}"
+    rescue
+      puts "Invalid input"
+      retry
     end until valid_from
 
     puts "From: #{self.board[from].symbol}"
@@ -72,7 +60,6 @@ class Game
       to = parse(prompt("Input end square: "))
     end until valid_moves.include?(to) && !self.board.move_into_check?(from, to)
 
-    #puts "To: #{self.board[to].class}"
     return from, to
   end
 
@@ -86,6 +73,8 @@ class Game
     alpha = { "a" => 0, "b" => 1, "c" => 2, "d" => 3, "e" => 4,
               "f" => 5, "g" => 6, "h" => 7 }
     arr = s.split("")
+    raise "Invalid Input" if alpha[arr[0]].nil? || !alpha[arr[0]].between?(0,7)
+    raise "Invalid Input" unless (8 - Integer(arr[1])).between?(0,7)
     [ 8 - Integer(arr[1]),  alpha[arr[0]]]
   end
 end
