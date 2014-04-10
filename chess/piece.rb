@@ -109,20 +109,6 @@ class King < SteppingPiece
     self.symbol = Board::KING_BLACK if self.color != :white
   end
 
-  # def moves(deltas)
-  #   possible_moves = []
-  #
-  #   deltas.each do |delta|
-  #     current_pos = self.position
-  #     current_pos[0] += delta[0]
-  #     current_pos[1] +=  delta[1]
-  #     possible_moves << current_pos if is_valid_move?(current_pos)
-  #   end
-  #
-  #   possible_moves
-  # end
-
-
 end
 
 
@@ -130,7 +116,6 @@ class Knight < SteppingPiece
 
   DELTAS = [ [1, 2], [2, 1], [2, -1], [1, -2],
             [-1, -2], [-2, -1], [-1, 2], [-2, 1] ]
-
 
   def moves
     super(DELTAS)
@@ -141,13 +126,9 @@ class Knight < SteppingPiece
     self.symbol = Board::KNIGHT_WHITE if self.color == :white
     self.symbol = Board::KNIGHT_BLACK if self.color != :white
   end
-
 end
 
-
-
 class Rook < SlidingPiece
-
 
   DELTAS = [[1, 0], [-1, 0], [0, 1], [0, -1]]
   attr_reader :symbol
@@ -236,7 +217,6 @@ class Pawn < SteppingPiece
         deltas << [self.direction, dir]
       end
     end
-    #puts "DELTAS: #{deltas}"
     deltas
   end
 
